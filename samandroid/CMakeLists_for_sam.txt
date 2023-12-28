@@ -1,0 +1,59 @@
+cmake_minimum_required(VERSION 3.12)
+project(samandroid)
+
+# Set the path to the Android NDK
+# You need to replace this with the actual path to your NDK
+set(ANDROID_NDK "D:/personal/machine-learning/android-ndk-r26b")
+
+# Set the minimum API level
+set(ANDROID_PLATFORM android-21)
+
+# Include the Android NDK toolchain file
+set(CMAKE_TOOLCHAIN_FILE "${ANDROID_NDK}/build/cmake/android.toolchain.cmake")
+
+# Set the build type if not specified
+if (NOT XCODE AND NOT MSVC AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Set the output directory for libraries to include the ABI name
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/${ANDROID_ABI})
+
+# Check if this is a standalone project or included by other projects
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(SAM_STANDALONE ON)
+else()
+    set(SAM_STANDALONE OFF)
+endif()
+
+# Add subdirectory for dependencies
+add_subdirectory(ggml)
+
+# Set the source files for the SAM library
+set(SAM_SRC
+    D:/personal/sam/sam/sam.cpp-master/sam.cpp
+    D:/personal/sam/sam/sam.cpp-master/sam.h
+)
+
+find_library(LOG_LIB log)
+
+# Define the SAM library
+add_library(sam SHARED D:/personal/sam/sam/sam.cpp-master/sam.cpp)
+target_link_libraries(sam PUBLIC ggml ${LOG_LIB})
+target_include_directories(sam PUBLIC .)
+target_compile_features(sam PUBLIC cxx_std_14)
+
+# Set the C++ standard
+set_target_properties(sam PROPERTIES CXX_STANDARD 14)
+
+# Add compiler flag to suppress narrowing conversion warnings
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(sam PRIVATE -Wno-c++11-narrowing)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_options(sam PRIVATE -Wno-narrowing)
+endif()
